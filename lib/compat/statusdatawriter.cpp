@@ -392,7 +392,7 @@ void StatusDataWriter::DumpCheckableStatusAttrs(std::ostream& fp, const Checkabl
 	      "\t" "flap_detection_enabled=" << CompatUtility::GetCheckableFlapDetectionEnabled(checkable) << "\n"
 	      "\t" "is_flapping=" << CompatUtility::GetCheckableIsFlapping(checkable) << "\n"
 	      "\t" "percent_state_change=" << CompatUtility::GetCheckablePercentStateChange(checkable) << "\n"
-	      "\t" "problem_has_been_acknowledged=" << CompatUtility::GetCheckableProblemHasBeenAcknowledged(checkable) << "\n"
+	      "\t" "problem_has_been_acknowledged=" << (checkable->GetAcknowledgement() != AcknowledgementNone ? 1 : 0) << "\n"
 	      "\t" "acknowledgement_type=" << CompatUtility::GetCheckableAcknowledgementType(checkable) << "\n"
 	      "\t" "acknowledgement_end_time=" << checkable->GetAcknowledgementExpiry() << "\n"
 	      "\t" "scheduled_downtime_depth=" << checkable->GetDowntimeDepth() << "\n"
