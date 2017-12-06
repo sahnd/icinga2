@@ -274,7 +274,7 @@ void StatusDataWriter::DumpHostObject(std::ostream& fp, const Host::Ptr& host)
 	      "\t" "active_checks_enabled" "\t" << Convert::ToLong(host->GetEnableActiveChecks()) << "\n"
 	      "\t" "passive_checks_enabled" "\t" << Convert::ToLong(host->GetEnablePassiveChecks()) << "\n"
 	      "\t" "notifications_enabled" "\t" << Convert::ToLong(host->GetEnableNotifications()) << "\n"
-              "\t" "notification_options" "\t" << CompatUtility::GetCheckableNotificationNotificationOptions(host) << "\n"
+              "\t" "notification_options" "\t" << GetNotificationOptions(host) << "\n"
 	      "\t" "notification_interval" "\t" << CompatUtility::GetCheckableNotificationNotificationInterval(host) << "\n"
 	      "\t" "event_handler_enabled" "\t" << Convert::ToLong(host->GetEnableEventHandler()) << "\n";
 
@@ -443,7 +443,7 @@ void StatusDataWriter::DumpServiceObject(std::ostream& fp, const Service::Ptr& s
 		      "\t" "flap_detection_enabled" "\t" << Convert::ToLong(service->GetEnableFlapping()) << "\n"
 		      "\t" "is_volatile" "\t" << Convert::ToLong(service->GetVolatile()) << "\n"
 		      "\t" "notifications_enabled" "\t" << Convert::ToLong(service->GetEnableNotifications()) << "\n"
-		      "\t" "notification_options" "\t" << CompatUtility::GetCheckableNotificationNotificationOptions(service) << "\n"
+		      "\t" "notification_options" "\t" << GetNotificationOptions(service) << "\n"
 		      "\t" "notification_interval" "\t" << CompatUtility::GetCheckableNotificationNotificationInterval(service) << "\n"
 		      "\t" "notification_period" "\t" << "" << "\n"
 		      "\t" "event_handler_enabled" "\t" << Convert::ToLong(service->GetEnableEventHandler()) << "\n";
@@ -872,4 +872,54 @@ void StatusDataWriter::StatusTimerHandler(void)
 void StatusDataWriter::ObjectHandler(void)
 {
 	m_ObjectsCacheOutdated = true;
+}
+
+String StatusDataWriter::GetNotificationOptions(const Checkable::Ptr& checkable)
+{
+	Host::Ptr host;
+	Service::Ptr service;
+	tie(host, service) = GetHostService(checkable);
+
+	unsigned long notification_type_filter = 0;
+	unsigned long notification_state_filter = 0;
+
+	for (const Notification::Ptr& notification : checkable->GetNotifications()) {
+		notification_type_filter |= notification->GetTypeFilter();
+		notification_state_filter |= notification->GetStateFilter();
+	}
+
+	std::vector<String> notification_options;
+
+	/* notification state filters */
+	if (service) {
+		if (notification_state_filter & ServiceWarning) {
+			notification_options.push_back("w");
+		}
+		if (notification_state_filter & ServiceUnknown) {
+			notification_options.push_back("u");
+		}
+		if (notification_state_filter & ServiceCritical) {
+			notification_options.push_back("c");
+		}
+	} else {
+		if (notification_state_filter & HostDown) {
+			notification_options.push_back("d");
+		}
+	}
+
+	/* notification type filters */
+	if (notification_type_filter & NotificationRecovery) {
+		notification_options.push_back("r");
+	}
+	if ((notification_type_filter & NotificationFlappingStart) ||
+	    (notification_type_filter & NotificationFlappingEnd)) {
+		notification_options.push_back("f");
+	}
+	if ((notification_type_filter & NotificationDowntimeStart) ||
+	    (notification_type_filter & NotificationDowntimeEnd) ||
+	    (notification_type_filter & NotificationDowntimeRemoved)) {
+		notification_options.push_back("s");
+	}
+
+	return boost::algorithm::join(notification_options, ",");
 }
